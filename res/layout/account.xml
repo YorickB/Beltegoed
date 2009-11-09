@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+
+	<TableLayout android:layout_width="fill_parent"
+		android:layout_height="fill_parent" android:shrinkColumns="1,2"
+		android:stretchColumns="1,2" android:layout_margin="10px">
+		<TableRow android:paddingBottom="4px">
+			<TextView android:id="@+id/username_label"
+				android:layout_width="wrap_content" android:text="@string/username"
+				android:textSize="15px" android:layout_height="wrap_content" />
+
+			<EditText android:id="@+id/username" android:layout_width="fill_parent"
+				android:text="" android:textStyle="bold" android:textSize="15px"
+				android:layout_marginLeft="10px" android:layout_height="wrap_content"
+				android:layout_toRightOf="@+id/username_label" />
+		</TableRow>
+		<TableRow android:paddingBottom="4px">
+			<TextView android:id="@+id/password_label"
+				android:layout_width="wrap_content" android:text="@string/password"
+				android:textSize="15px" android:layout_height="wrap_content" />
+
+			<EditText android:id="@+id/password" android:layout_width="fill_parent"
+				android:text="" android:textStyle="bold" android:textSize="15px"
+				android:password="true" android:layout_marginLeft="10px"
+				android:layout_height="wrap_content" android:layout_toRightOf="@id/password_label" />
+		</TableRow>
+
+		<Button android:id="@+id/store_account" android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:drawableLeft="@android:drawable/ic_menu_save"
+			android:layout_marginTop="20px" android:text="@string/button_store_account"
+			android:gravity="left|center_vertical" android:drawablePadding="20px" />
+	</TableLayout>
+
+</LinearLayout>
