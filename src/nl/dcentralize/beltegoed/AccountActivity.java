@@ -1,5 +1,7 @@
 package nl.dcentralize.beltegoed;
 
+import com.nullwire.trace.ExceptionHandler;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -26,10 +28,24 @@ public class AccountActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
-		TelephonyManager mTelephonyMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-		String phoneNumber = mTelephonyMgr.getLine1Number();
-		Log.d(TAG, "Phone number: " + phoneNumber);
+		
+		ExceptionHandler.register(this, "http://d-centralize.nl/android_talkback.php"); 
+		
+		// Generate an exception to test the talkback process
+		// Integer.parseInt("50,00");
+		
+		String phoneNumber = "";
+		/*
+		 * XXX: Disabled due to crashes reported on HERO
+		try {
+			TelephonyManager mTelephonyMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+			phoneNumber = mTelephonyMgr.getLine1Number();
+			Log.d(TAG, "Phone number: " + phoneNumber);
+		} catch (Exception e) {
+			Log.e(TAG, "Unable to get phone number");
+			phoneNumber = "";
+		}
+		*/
 
 		settings = getSharedPreferences(PREFS_NAME, 0);
 		String username = settings.getString(USERNAME, phoneNumber);

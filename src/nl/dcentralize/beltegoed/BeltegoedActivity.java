@@ -21,6 +21,8 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 
+import com.nullwire.trace.ExceptionHandler;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -49,6 +51,9 @@ public class BeltegoedActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		 
+		ExceptionHandler.register(this, "http://d-centralize.nl/android_talkback.php"); 
+		
 		setContentView(R.layout.beltegoed);
 
 		// Get account information, or ask for it.
