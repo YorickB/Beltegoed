@@ -6,6 +6,19 @@
 	<TableLayout android:layout_width="fill_parent"
 		android:layout_height="fill_parent" android:shrinkColumns="1,2"
 		android:stretchColumns="1,2" android:layout_margin="10px">
+
+		<TableRow android:paddingBottom="4px">
+			<TextView android:id="@+id/provider_label"
+				android:layout_width="wrap_content" android:text="@string/provider"
+				android:textSize="15px" android:layout_height="wrap_content"
+				android:layout_gravity="center_vertical"
+				 />
+
+			<Spinner android:id="@+id/provider" android:layout_width="fill_parent"
+				android:layout_height="wrap_content" android:drawSelectorOnTop="true"
+				android:layout_marginLeft="10px" android:textSize="15px"
+				android:layout_toRightOf="@+id/provider_label" />
+		</TableRow>
 		<TableRow android:paddingBottom="4px">
 			<TextView android:id="@+id/username_label"
 				android:layout_width="wrap_content" android:text="@string/username"
