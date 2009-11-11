@@ -13,12 +13,9 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
-
-import android.util.Log;
 
 public class providerVodafone {
 
@@ -34,14 +31,14 @@ public class providerVodafone {
 
 			HttpResponse response = httpclient.execute(httpget);
 			HttpEntity entity = response.getEntity();
- 
+
 			String id = null;
 			if (entity != null) {
 				// Do something useful with the entity and, when done, call
 				// consumeContent() to make sure the connection can be
 				// re-used
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.logMessage = str;
+				parseResult.setLogMessage(str);
 
 				String[] split = str.split("\" name=\"ID\"");
 				id = split[0].substring(split[0].length() - 32, split[0]
@@ -68,35 +65,19 @@ public class providerVodafone {
 				response = httpclient.execute(httpost);
 			} catch (ClientProtocolException e) {
 				parseResult.parseResult = PARSE_RESULT.INVALID_LOGIN;
-				parseResult.errorMessage = e.getCause().getMessage();
+				parseResult.setErrorMessage(e.getCause().getMessage());
 				return parseResult;
 			}
 			entity = response.getEntity();
- 
+
 			if (entity != null) {
 				// Do something useful with the entity and, when done, call
 				// consumeContent() to make sure the connection can be
-				// re-used 
+				// re-used
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.logMessage = str;
+				parseResult.setLogMessage(str);
 
 				entity.consumeContent();
-			}
-
-			List<Cookie> cookies = httpclient.getCookieStore().getCookies();
-			String msisdn = null;
-			if (cookies.isEmpty()) {
-				// No cookies? XXX
-			} else {
-				for (int i = 0; i < cookies.size(); i++) {
-					if (cookies.get(i).getName().equals(
-							"_preLoginRequestParameters")) {
-						String preLoginRequestParameters = cookies.get(i)
-								.getValue();
-						msisdn = preLoginRequestParameters.split("MSISDN")[1]
-								.split("&ID")[0];
-					}
-				}
 			}
 
 			// Part 3. Perform the cost control lookup.
@@ -111,10 +92,10 @@ public class providerVodafone {
 			httpost.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
 			response = httpclient.execute(httpost);
 			entity = response.getEntity();
- 
-			if (entity != null) { 
+
+			if (entity != null) {
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.logMessage = str;
+				parseResult.setLogMessage(str);
 
 				// Basis abonnement 50,00
 				final String accountType = str
@@ -149,15 +130,22 @@ public class providerVodafone {
 
 		} catch (UnknownHostException e) {
 			parseResult.parseResult = PARSE_RESULT.NO_INTERNET;
-			parseResult.errorMessage = e.getCause().getMessage();
+			if (e.getCause() == null) {
+				parseResult.setErrorMessage(e.getMessage());
+			} else {
+				parseResult.setErrorMessage(e.getCause().getMessage());
+			}
 		} catch (Exception e) {
 			parseResult.parseResult = PARSE_RESULT.UNKNOWN;
-			parseResult.errorMessage = e.getCause().getMessage();
+			if (e.getCause() == null) {
+				parseResult.setErrorMessage(e.getMessage());
+			} else {
+				parseResult.setErrorMessage(e.getCause().getMessage());
+			}
 			return parseResult;
 		}
 
 		parseResult.parseResult = PARSE_RESULT.OK;
 		return parseResult;
 	}
-
 }

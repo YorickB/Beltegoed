@@ -8,5 +8,5 @@
 	<string name="menu_preferences">Account</string>
 	<string name="dialog_loading_account">Inladen van gegevens\u2026</string>
 	<string name="account_type">Abonnementsvorm:</string>
-	<string name="error_parsing">Kon de vodafone pagina's niet verwerken. Probeer contact op te nemen met de ontwikkelaars, je hebt waarschijnlijk een niet getest abonnement...</string>
+	<string name="error_parsing">Fout opgetreden (onbekend abonnement?). Stuur het het logbestand (op de SD card) naar de makers, en we verhelpen het.</string>
 </resources>
