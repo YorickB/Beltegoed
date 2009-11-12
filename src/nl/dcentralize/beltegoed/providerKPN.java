@@ -20,7 +20,8 @@ public class providerKPN {
 
 	public static ParseResults ParseKPN(String username, String password) {
 		ParseResults parseResult = new ParseResults();
-
+		parseResult.provider = "KPN";
+		
 		try {
 			DefaultHttpClient httpclient = new DefaultHttpClient();
 			HttpResponse response;
@@ -96,6 +97,11 @@ public class providerKPN {
 				final String accountType = lines[11].split("<ns0:DESCRIPTION>")[1]
 						.split("</ns0:DESCRIPTION>")[0];
 
+				final String endDate = lines[4].split("<ns0:END_DATE>")[1]
+						.split("</ns0:END_DATE>")[0];
+				final String startDate = lines[5].split("<ns0:START_DATE>")[1]
+						.split("</ns0:START_DATE>")[0];
+
 				String centstartAmountRaw = lines[40].split("<ns0:SIZE>")[1]
 						.split(".0</ns0:SIZE>")[0];
 				final String startAmountRaw = centstartAmountRaw
@@ -122,6 +128,8 @@ public class providerKPN {
 				parseResult.startAmountRaw = startAmountRaw;
 				parseResult.currentAmountRaw = currentAmountRaw;
 				parseResult.extraAmountRaw = extraAmountRaw;
+				parseResult.endDateRaw = endDate;
+				parseResult.startDateRaw = startDate;				
 			}
 
 			// When HttpClient instance is no longer needed,

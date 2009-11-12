@@ -2,6 +2,7 @@ package nl.dcentralize.beltegoed;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
@@ -21,6 +22,7 @@ public class providerVodafone {
 
 	public static ParseResults ParseVodafone(String username, String password) {
 		ParseResults parseResult = new ParseResults();
+		parseResult.provider = "Vodafone";
 
 		try {
 			DefaultHttpClient httpclient = new DefaultHttpClient();
@@ -121,6 +123,13 @@ public class providerVodafone {
 				parseResult.startAmountRaw = startAmountRaw;
 				parseResult.currentAmountRaw = currentAmountRaw;
 				parseResult.extraAmountRaw = extraAmountRaw;
+				Calendar calendar = Calendar.getInstance();
+				int maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+				int minDay = calendar.getActualMinimum(Calendar.DAY_OF_MONTH);
+				int month = calendar.get(Calendar.MONTH) + 1;
+				int year = calendar.get(Calendar.YEAR);
+				parseResult.startDateRaw = year + "-" + month + "-" + minDay;
+				parseResult.endDateRaw = year + "-" + month + "-" + maxDay;
 			}
 
 			// When HttpClient instance is no longer needed,

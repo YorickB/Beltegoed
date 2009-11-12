@@ -18,9 +18,10 @@ import com.nullwire.trace.ExceptionHandler;
 public class AccountActivity extends Activity {
 	private static final String TAG = "BeltegoedActivity";
 	public static final String PREFS_NAME = "BeltegoedPreferences";
+	public static final String PROVIDER = "PROVIDER";
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
-	public static final String PROVIDER = "PROVIDER";
+	public static final String LAST_LOGIN = "LAST_LOGIN";
 
 	public static final String PROVIDER_VODAFONE = "Vodafone";
 	public static final String PROVIDER_KPN = "KPN";
@@ -62,10 +63,10 @@ public class AccountActivity extends Activity {
 		String username = settings.getString(USERNAME, phoneNumber);
 		String password = settings.getString(PASSWORD, "");
 		String provider = settings.getString(PROVIDER, "");
+		Long lastlogin = settings.getLong(LAST_LOGIN, -1);
 
 		String action = this.getIntent().getAction();
-		if (action.equals(Intent.ACTION_VIEW)
-				&& (username.length() > 0 && password.length() > 0)) {
+		if (action.equals(Intent.ACTION_VIEW) && lastlogin > 0) {
 			ReportSuccess(provider, username, password);
 		}
 
@@ -104,6 +105,8 @@ public class AccountActivity extends Activity {
 		editor.putString(USERNAME, username);
 		editor.putString(PASSWORD, password);
 		editor.putString(PROVIDER, provider);
+		// Reset last valid login as this may be a new account setting to try
+		editor.putLong(LAST_LOGIN, -1);
 		editor.commit();
 
 		// XXX: validate first

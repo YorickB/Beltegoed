@@ -1,5 +1,7 @@
 package nl.dcentralize.beltegoed;
 
+import java.util.Date;
+
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -7,8 +9,11 @@ import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -36,6 +41,10 @@ public class BeltegoedActivity extends Activity {
 
 		setContentView(R.layout.beltegoed);
 
+		showAccountSettings();
+	}
+
+	private void showAccountSettings() {
 		// Get account information, or ask for it.
 		Intent intent = new Intent(this, AccountActivity.class);
 		intent.setAction(Intent.ACTION_VIEW);
@@ -58,8 +67,14 @@ public class BeltegoedActivity extends Activity {
 		}
 	}
 
-	private void showAccountDetails(String accountName, String startAmountRaw,
-			String currentAmountRaw, String extraAmountRaw) {
+	private void showAccountDetails(ParseResults parseResults) {
+		String providerName = parseResults.provider;
+		String accountName = parseResults.accountType;
+		String startAmountRaw = parseResults.startAmountRaw;
+		String currentAmountRaw = parseResults.currentAmountRaw;
+		String extraAmountRaw = parseResults.extraAmountRaw;
+		String startDateRaw = parseResults.startDateRaw;
+		String endDateRaw = parseResults.endDateRaw;
 
 		int startAmountRounded = Integer.parseInt(startAmountRaw.split(",")[0]);
 		int currentAmountRounded = Integer
@@ -74,14 +89,18 @@ public class BeltegoedActivity extends Activity {
 		extraAmountRaw = extraAmountRaw.replace(',', '.');
 
 		TextView account_type = (TextView) findViewById(R.id.account_type);
-		account_type.setText(accountName);
+		account_type.setText(providerName + " " + accountName);
 
 		TextView amount_text = (TextView) findViewById(R.id.amount_text);
-		amount_text.setText("€" + currentAmountRaw + " van €" + startAmountRaw
-				+ " over.");
+		amount_text.setText("€ " + currentAmountRaw + " van oorspronkelijke € "
+				+ startAmountRaw + " over.");
 
 		TextView extra_text = (TextView) findViewById(R.id.extra_text);
-		extra_text.setText("€" + extraAmountRaw + " buiten bundel gebruikt.");
+		extra_text.setText("€ " + extraAmountRaw + " extra buiten bundel.");
+
+		TextView bundle_dates = (TextView) findViewById(R.id.bundle_dates);
+		bundle_dates.setText("Periode van " + startDateRaw + " tot "
+				+ endDateRaw);
 	}
 
 	@Override
@@ -117,6 +136,45 @@ public class BeltegoedActivity extends Activity {
 		lpt.execute();
 	}
 
+	// This function does GUI tasks from a non-GUI thread.
+	public Handler InvalidLoginHandler = new Handler() {
+		public void handleMessage(Message msg) {
+			alertInvalidLogin();
+		}
+	};
+
+	private void alertInvalidLogin() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setMessage(R.string.login_error).setCancelable(false)
+				.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+						showAccountSettings();
+					}
+				});
+		AlertDialog alert = builder.create();
+		alert.show();
+	}
+
+	// This function does GUI tasks from a non-GUI thread.
+	public Handler UnknownErrorHandler = new Handler() {
+		public void handleMessage(Message msg) {
+			alertUnknownError();
+		}
+	};
+
+	private void alertUnknownError() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setMessage(R.string.error_parsing).setCancelable(false)
+				.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				});
+		AlertDialog alert = builder.create();
+		alert.show();
+	}
+
 	private class LocalParseTask extends AsyncTask<Void, Void, Void> {
 		@Override
 		protected void onPreExecute() {
@@ -135,32 +193,31 @@ public class BeltegoedActivity extends Activity {
 				parseResult = null;
 			}
 
+			SharedPreferences settings = getSharedPreferences(
+					AccountActivity.PREFS_NAME, 0);
+			SharedPreferences.Editor editor = settings.edit();
+			
 			if (parseResult != null) {
 				if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
-					BeltegoedActivity.this.runOnUiThread(new Runnable() {
-						public void run() {
-							new AlertDialog.Builder(BeltegoedActivity.this)
-									.setMessage("Login/password incorrect")
-									.show();
-						}
-					});
+					// Make sure the login is invalidated.
+					editor.putLong(AccountActivity.LAST_LOGIN, -1);
+					editor.commit();
+					InvalidLoginHandler.sendMessage(new Message());
 				} else if (parseResult.parseResult != PARSE_RESULT.OK) {
-					Tools.writeToSD("Beltegoed-error-log.txt",
-							parseResult.getErrorMessage() + parseResult.getLogMessage());
-					BeltegoedActivity.this.runOnUiThread(new Runnable() {
-						public void run() {
-							new AlertDialog.Builder(BeltegoedActivity.this)
-									.setMessage(getText(R.string.error_parsing))
-									.show();
-						}
-					});
+					Tools.writeToSD("Beltegoed-error-log.txt", parseResult
+							.getErrorMessage()
+							+ parseResult.getLogMessage());
+					UnknownErrorHandler.sendMessage(new Message());
 				} else {
+					// Save the login timestamp so we know the login succeeded.
+					long currentts = (new Date()).getTime();
+					
+					editor.putLong(AccountActivity.LAST_LOGIN, currentts);
+					editor.commit();
+
 					BeltegoedActivity.this.runOnUiThread(new Runnable() {
 						public void run() {
-							showAccountDetails(parseResult.accountType,
-									parseResult.startAmountRaw,
-									parseResult.currentAmountRaw,
-									parseResult.extraAmountRaw);
+							showAccountDetails(parseResult);
 						}
 					});
 				}
