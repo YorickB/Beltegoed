@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -25,8 +27,6 @@ public class AccountActivity extends Activity {
 
 	public static final String PROVIDER_VODAFONE = "Vodafone";
 	public static final String PROVIDER_KPN = "KPN";
-	// public static final String[] PROVIDER_LIST = { PROVIDER_VODAFONE,
-	// PROVIDER_KPN };
 	public static final ArrayList<String> PROVIDER_LIST = new ArrayList<String>(
 			Arrays.asList(PROVIDER_VODAFONE, PROVIDER_KPN));
 
@@ -102,15 +102,37 @@ public class AccountActivity extends Activity {
 		String password = password_input.getEditableText().toString();
 		String provider = provider_input.getSelectedItem().toString();
 
-		editor.putString(USERNAME, username);
-		editor.putString(PASSWORD, password);
-		editor.putString(PROVIDER, provider);
-		// Reset last valid login as this may be a new account setting to try
-		editor.putLong(LAST_LOGIN, -1);
-		editor.commit();
+		String verificationResult = null;
+		if (provider.equals(AccountActivity.PROVIDER_VODAFONE)) {
+			verificationResult = providerVodafone.verifyAccount(username,
+					password);
+		} else if (provider.equals(AccountActivity.PROVIDER_KPN)) {
+			verificationResult = providerKPN.verifyAccount(username, password);
+		}
 
-		// XXX: validate first
-		ReportSuccess(provider, username, password);
+		if (verificationResult == null) {
+			// No errors found. Use these account settings.
+
+			editor.putString(USERNAME, username);
+			editor.putString(PASSWORD, password);
+			editor.putString(PROVIDER, provider);
+			// Reset last valid login as this may be a new account setting to
+			// try
+			editor.putLong(LAST_LOGIN, -1);
+			editor.commit();
+
+			ReportSuccess(provider, username, password);
+		} else {
+			// Input validation error. Show error description.
+			new AlertDialog.Builder(this).setMessage(verificationResult)
+					.setCancelable(false).setNeutralButton("Ok",
+							new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog,
+										int id) {
+									dialog.cancel();
+								}
+							}).create().show();
+		}
 	}
 
 	private void ReportSuccess(String provider, String username, String password) {

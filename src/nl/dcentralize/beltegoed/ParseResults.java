@@ -1,9 +1,12 @@
 package nl.dcentralize.beltegoed;
 
-
 public class ParseResults {
 	public enum PARSE_RESULT {
 		NONE, NO_INTERNET, OK, INVALID_LOGIN, UNKNOWN
+	};
+
+	public enum PARSE_STEP {
+		INIT, LOGIN_FORM, LOGGED_IN, EXTRA, ACCOUNT_DETAILS
 	};
 
 	public PARSE_RESULT parseResult = PARSE_RESULT.NONE;
@@ -14,19 +17,23 @@ public class ParseResults {
 	public String provider;
 	// Provider specific account type ("Basis abonnement 50,00")
 	public String accountType;
-	// Amount (euro) of the start at a period (could include last periods leftovers).
+	// Amount (euro) of the start at a period (could include last periods
+	// leftovers).
 	public String startAmountRaw;
 	// Amount (euro) left of this period.
 	public String currentAmountRaw;
 	// Amount (euro) outside bundle (either over or extra)
 	public String extraAmountRaw;
-	// This period started at date (Vodafone always 1st of a month, KPN: e.g. 2009-10-20)
+	// This period started at date (Vodafone always 1st of a month, KPN: e.g.
+	// 2009-10-20)
 	public String startDateRaw;
-	// This period ends at date (Vodafone always last day of a month, KPN: e.g. 2009-11-18)
+	// This period ends at date (Vodafone always last day of a month, KPN: e.g.
+	// 2009-11-18)
 	public String endDateRaw;
-	
+
 	public void setErrorMessage(String errorMessage) {
 		if (errorMessage != null) {
+			this.logMessage += "Error reported: " + errorMessage;			
 			this.errorMessage = errorMessage;
 		}
 	}
@@ -35,9 +42,10 @@ public class ParseResults {
 		return errorMessage;
 	}
 
-	public void setLogMessage(String logMessage) {
+	public void appendLogMessage(PARSE_STEP step, String logMessage) {
 		if (logMessage != null) {
-			this.logMessage = logMessage;
+			this.logMessage += "Step: " + step.name() + "Content: "
+					+ logMessage;
 		}
 	}
 

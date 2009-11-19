@@ -4,8 +4,11 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
+import nl.dcentralize.beltegoed.ParseResults.PARSE_STEP;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -20,9 +23,26 @@ import org.apache.http.protocol.HTTP;
 
 public class providerVodafone {
 
+	public static String verifyAccount(String username, String password) {
+		Pattern p = Pattern.compile("^06[a0-9]{8}$");
+		Matcher m = p.matcher(username);
+		if (m.find()) {
+			// Input ok, like "0612345678"
+		} else {
+			return "Onjuiste gebruikersnaam. Formaat is: 0612345678";
+		}
+
+		if (password.length() == 0)
+		{
+			return "Onjuist wachtwoord. Formaat is: niet leeg";
+		}
+		return null;
+	}
+
 	public static ParseResults ParseVodafone(String username, String password) {
 		ParseResults parseResult = new ParseResults();
 		parseResult.provider = "Vodafone";
+		parseResult.appendLogMessage(PARSE_STEP.INIT, "");
 
 		try {
 			DefaultHttpClient httpclient = new DefaultHttpClient();
@@ -40,7 +60,7 @@ public class providerVodafone {
 				// consumeContent() to make sure the connection can be
 				// re-used
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.setLogMessage(str);
+				parseResult.appendLogMessage(PARSE_STEP.LOGIN_FORM, str);
 
 				String[] split = str.split("\" name=\"ID\"");
 				id = split[0].substring(split[0].length() - 32, split[0]
@@ -77,7 +97,7 @@ public class providerVodafone {
 				// consumeContent() to make sure the connection can be
 				// re-used
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.setLogMessage(str);
+				parseResult.appendLogMessage(PARSE_STEP.LOGGED_IN, str);
 
 				entity.consumeContent();
 			}
@@ -97,7 +117,7 @@ public class providerVodafone {
 
 			if (entity != null) {
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.setLogMessage(str);
+				parseResult.appendLogMessage(PARSE_STEP.ACCOUNT_DETAILS, str);
 
 				// Basis abonnement 50,00
 				final String accountType = str

@@ -19,8 +19,8 @@ public class Tools {
 			File root = Environment.getExternalStorageDirectory();
 			if (root.canWrite()) {
 				File file = new File(root, filename);
-				FileWriter gpxwriter = new FileWriter(file);
-				BufferedWriter out = new BufferedWriter(gpxwriter);
+				FileWriter writer = new FileWriter(file, true);
+				BufferedWriter out = new BufferedWriter(writer);
 				out.write(data);
 				out.close();
 			}

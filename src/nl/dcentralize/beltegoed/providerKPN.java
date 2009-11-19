@@ -3,8 +3,11 @@ package nl.dcentralize.beltegoed;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
+import nl.dcentralize.beltegoed.ParseResults.PARSE_STEP;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -17,11 +20,22 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 
 public class providerKPN {
+	public static String verifyAccount(String username, String password) {
+		if (username.length() == 0) {
+			return "Onjuiste gebruikersnaam. Formaat is: niet leeg";
+		}
+
+		if (password.length() == 0) {
+			return "Onjuist wachtwoord. Formaat is: niet leeg";
+		}
+		return null;
+	}
 
 	public static ParseResults ParseKPN(String username, String password) {
 		ParseResults parseResult = new ParseResults();
 		parseResult.provider = "KPN";
-		
+		parseResult.appendLogMessage(PARSE_STEP.INIT, "");
+
 		try {
 			DefaultHttpClient httpclient = new DefaultHttpClient();
 			HttpResponse response;
@@ -46,7 +60,7 @@ public class providerKPN {
 				// consumeContent() to make sure the connection can be
 				// re-used
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.setLogMessage(str);
+				parseResult.appendLogMessage(PARSE_STEP.LOGGED_IN, str);
 
 				entity.consumeContent();
 			}
@@ -64,7 +78,7 @@ public class providerKPN {
 				// consumeContent() to make sure the connection can be
 				// re-used
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.setLogMessage(str);
+				parseResult.appendLogMessage(PARSE_STEP.EXTRA, str);
 
 				if (str.contains("sessionlost")) {
 					parseResult.parseResult = PARSE_RESULT.INVALID_LOGIN;
@@ -90,7 +104,7 @@ public class providerKPN {
 
 			if (entity != null) {
 				String str = Tools.convertStreamToString(entity.getContent());
-				parseResult.setLogMessage(str);
+				parseResult.appendLogMessage(PARSE_STEP.ACCOUNT_DETAILS, str);
 
 				String[] lines = str.split("\n");
 				// Flexibel 20
@@ -129,7 +143,7 @@ public class providerKPN {
 				parseResult.currentAmountRaw = currentAmountRaw;
 				parseResult.extraAmountRaw = extraAmountRaw;
 				parseResult.endDateRaw = endDate;
-				parseResult.startDateRaw = startDate;				
+				parseResult.startDateRaw = startDate;
 			}
 
 			// When HttpClient instance is no longer needed,

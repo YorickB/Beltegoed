@@ -10,6 +10,8 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -196,22 +198,12 @@ public class BeltegoedActivity extends Activity {
 			SharedPreferences settings = getSharedPreferences(
 					AccountActivity.PREFS_NAME, 0);
 			SharedPreferences.Editor editor = settings.edit();
-			
+
 			if (parseResult != null) {
-				if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
-					// Make sure the login is invalidated.
-					editor.putLong(AccountActivity.LAST_LOGIN, -1);
-					editor.commit();
-					InvalidLoginHandler.sendMessage(new Message());
-				} else if (parseResult.parseResult != PARSE_RESULT.OK) {
-					Tools.writeToSD("Beltegoed-error-log.txt", parseResult
-							.getErrorMessage()
-							+ parseResult.getLogMessage());
-					UnknownErrorHandler.sendMessage(new Message());
-				} else {
+				if (parseResult.parseResult == PARSE_RESULT.OK) {
 					// Save the login timestamp so we know the login succeeded.
 					long currentts = (new Date()).getTime();
-					
+
 					editor.putLong(AccountActivity.LAST_LOGIN, currentts);
 					editor.commit();
 
@@ -220,6 +212,39 @@ public class BeltegoedActivity extends Activity {
 							showAccountDetails(parseResult);
 						}
 					});
+				} else {
+					// We've got a problem, log as much as we can.
+					String logDump = "Beltegoed app debug log. ";
+
+					String versionName = "";
+					try {
+						PackageInfo pi = getPackageManager().getPackageInfo(
+								getPackageName(), 0);
+						versionName = pi.versionName;
+					} catch (PackageManager.NameNotFoundException e) {
+					}
+					logDump += versionName;
+					if (parseResult.provider != null) {
+						logDump += "\nProvider: " + parseResult.provider;
+					}
+					if (parseResult.accountType != null) {
+						logDump += "\nAccount type: " + parseResult.accountType;
+					}
+					logDump += "\nError message: "
+							+ parseResult.getErrorMessage();
+					logDump += "\nLog message: " + parseResult.getLogMessage();
+
+					Tools.writeToSD("Beltegoed-error-log.txt", logDump);
+
+					// Make sure the login is invalidated.
+					editor.putLong(AccountActivity.LAST_LOGIN, -1);
+					editor.commit();
+
+					if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
+						InvalidLoginHandler.sendMessage(new Message());
+					} else {
+						UnknownErrorHandler.sendMessage(new Message());
+					}
 				}
 			}
 
