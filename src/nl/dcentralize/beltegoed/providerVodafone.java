@@ -1,6 +1,7 @@
 package nl.dcentralize.beltegoed;
 
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -32,8 +33,7 @@ public class providerVodafone {
 			return "Onjuiste gebruikersnaam. Formaat is: 0612345678";
 		}
 
-		if (password.length() == 0)
-		{
+		if (password.length() == 0) {
 			return "Onjuist wachtwoord. Formaat is: niet leeg";
 		}
 		return null;
@@ -86,6 +86,10 @@ public class providerVodafone {
 			try {
 				response = httpclient.execute(httpost);
 			} catch (ClientProtocolException e) {
+				String errorMessage = e.getCause().getMessage();
+				if (errorMessage.contains("errorcode=UE_LOGIN_TIMEOUT")) {
+					// Try again.
+				}
 				parseResult.parseResult = PARSE_RESULT.INVALID_LOGIN;
 				parseResult.setErrorMessage(e.getCause().getMessage());
 				return parseResult;
@@ -118,7 +122,12 @@ public class providerVodafone {
 			if (entity != null) {
 				String str = Tools.convertStreamToString(entity.getContent());
 				parseResult.appendLogMessage(PARSE_STEP.ACCOUNT_DETAILS, str);
-
+				if (str.contains("global.our.apology")) {
+					// Vodafone is doing maintenance.
+					// "op dit moment is het niet mogelijk om je tegoed en verbruik te tonen. Probeer het op een later tijdstip nogmaals."
+					// XXX: handle this case
+				}
+				
 				// Basis abonnement 50,00
 				final String accountType = str
 						.split("myvodafone.dashboard.usage.priceplan.mijnabonnement")[1]
@@ -136,12 +145,25 @@ public class providerVodafone {
 				final String extraAmountRaw = str
 						.split("myvodafone.dashboard.usage.priceplan.buiten")[1]
 						.split("&euro;&nbsp;")[1].split("</span>")[0];
+				/*
+				 * // 19 november&nbsp;2009 final String lastUpdateDate = str
+				 * .split("bundle.timestamp.datePrefix")[1]
+				 * .split("<nobr>")[1].split("</nobr>")[0].replace("&nbsp", "");
+				 */
+				// 19-11-2009
+				final String lastUpdateDate = str
+						.split("myvodafone.dashboard.cost.textpart.two -->")[1]
+						.split("</span>")[0];
+				// 12:57
+				final String lastUpdateTime = str
+						.split("bundle.timestamp.timePrefix")[1]
+						.split("<nobr>")[1].split("</nobr>")[0];
 
 				entity.consumeContent();
 
 				parseResult.accountType = accountType;
 				parseResult.startAmountRaw = startAmountRaw;
-				parseResult.currentAmountRaw = currentAmountRaw;
+				parseResult.amountLeftRaw = currentAmountRaw;
 				parseResult.extraAmountRaw = extraAmountRaw;
 				Calendar calendar = Calendar.getInstance();
 				int maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
@@ -150,6 +172,10 @@ public class providerVodafone {
 				int year = calendar.get(Calendar.YEAR);
 				parseResult.startDateRaw = year + "-" + month + "-" + minDay;
 				parseResult.endDateRaw = year + "-" + month + "-" + maxDay;
+
+				SimpleDateFormat df1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+				parseResult.lastUpdate = df1.parse(lastUpdateDate + " "
+						+ lastUpdateTime);
 			}
 
 			// When HttpClient instance is no longer needed,

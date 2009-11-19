@@ -26,4 +26,9 @@
 		android:layout_marginTop="10px" android:layout_below="@id/extra_text"
 		android:textSize="16px" android:layout_height="wrap_content"
 		android:text="" />
+		
+	<TextView android:id="@+id/last_update" android:layout_width="wrap_content"
+		android:layout_marginTop="10px" android:layout_below="@id/bundle_dates"
+		android:textSize="16px" android:layout_height="wrap_content"
+		android:text="" />
 </RelativeLayout>

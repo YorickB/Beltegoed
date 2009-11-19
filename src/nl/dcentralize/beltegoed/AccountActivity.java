@@ -14,9 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
-
-import com.nullwire.trace.ExceptionHandler;
-
+ 
 public class AccountActivity extends Activity {
 	private static final String TAG = "BeltegoedActivity";
 	public static final String PREFS_NAME = "BeltegoedPreferences";
@@ -42,10 +40,7 @@ public class AccountActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
-		ExceptionHandler.register(this,
-				"http://d-centralize.nl/android_talkback.php");
-
+ 
 		// Generate an exception to test the talkback process
 		// Integer.parseInt("50,00");
 

@@ -1,5 +1,7 @@
 package nl.dcentralize.beltegoed;
 
+import java.util.Date;
+
 public class ParseResults {
 	public enum PARSE_RESULT {
 		NONE, NO_INTERNET, OK, INVALID_LOGIN, UNKNOWN
@@ -21,7 +23,7 @@ public class ParseResults {
 	// leftovers).
 	public String startAmountRaw;
 	// Amount (euro) left of this period.
-	public String currentAmountRaw;
+	public String amountLeftRaw;
 	// Amount (euro) outside bundle (either over or extra)
 	public String extraAmountRaw;
 	// This period started at date (Vodafone always 1st of a month, KPN: e.g.
@@ -30,6 +32,8 @@ public class ParseResults {
 	// This period ends at date (Vodafone always last day of a month, KPN: e.g.
 	// 2009-11-18)
 	public String endDateRaw;
+	// Last update
+	public Date lastUpdate = null;
 
 	public void setErrorMessage(String errorMessage) {
 		if (errorMessage != null) {

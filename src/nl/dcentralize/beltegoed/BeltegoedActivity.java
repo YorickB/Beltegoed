@@ -1,20 +1,21 @@
 package nl.dcentralize.beltegoed;
 
-import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
+
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.os.AsyncTask;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,29 +23,85 @@ import android.view.MenuItem;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.nullwire.trace.ExceptionHandler;
-
 public class BeltegoedActivity extends Activity {
 	private static final String TAG = "BeltegoedActivity";
-	public String username = null;
-	public String password = null;
-	public String provider = null;
+	private Account account;
+
 	static final int ACCOUNT_REQUEST = 100;
 
-	private LocalParseTask lpt = null;
+	private BeltegoedService appService = null;
 
-	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		ExceptionHandler.register(this,
-				"http://d-centralize.nl/android_talkback.php");
-
 		setContentView(R.layout.beltegoed);
 
 		showAccountSettings();
+
+		bindService(new Intent(this, BeltegoedService.class), onService,
+				Context.BIND_AUTO_CREATE);
 	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+
+		registerReceiver(receiver, new IntentFilter(
+				BeltegoedService.BROADCAST_ACTION));
+	}
+
+	@Override
+	public void onPause() {
+		super.onPause();
+
+		unregisterReceiver(receiver);
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+
+		unbindService(onService);
+	}
+
+	// This function does GUI tasks from a non-GUI thread.
+	public Handler DetailsAvailableHandler = new Handler() {
+
+		public void handleMessage(Message msg) {
+			ParseResults parseResult = appService.getBeltegoed();
+
+			if (parseResult.parseResult == PARSE_RESULT.OK) {
+				showAccountDetails(parseResult);
+			} else {
+				if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
+					alertInvalidLogin();
+				} else {
+					alertUnknownError();
+				}
+			}
+		}
+	};
+
+	private BroadcastReceiver receiver = new BroadcastReceiver() {
+		public void onReceive(Context context, Intent intent) {
+			DetailsAvailableHandler.sendMessage(new Message());
+		}
+	};
+
+	private ServiceConnection onService = new ServiceConnection() {
+		public void onServiceConnected(ComponentName className,
+				IBinder rawBinder) {
+			appService = ((BeltegoedService.LocalBinder) rawBinder)
+					.getService();
+
+			appService.setAccount(account);
+		}
+
+		public void onServiceDisconnected(ComponentName className) {
+			appService = null;
+		}
+	};
 
 	private void showAccountSettings() {
 		// Get account information, or ask for it.
@@ -59,10 +116,15 @@ public class BeltegoedActivity extends Activity {
 			if (resultCode == RESULT_OK) {
 				Bundle bundle = data.getExtras();
 				if (bundle != null) {
-					username = bundle.getString(AccountActivity.USERNAME);
-					password = bundle.getString(AccountActivity.PASSWORD);
-					provider = bundle.getString(AccountActivity.PROVIDER);
-					GetAccountInformation();
+					account = new Account();
+					account.setProvider(bundle
+							.getString(AccountActivity.PROVIDER));
+					account.setUsername(bundle
+							.getString(AccountActivity.USERNAME));
+					account.setPassword(bundle
+							.getString(AccountActivity.PASSWORD));
+
+					appService.fetchBeltegoed(account);
 				}
 			}
 			break;
@@ -73,7 +135,7 @@ public class BeltegoedActivity extends Activity {
 		String providerName = parseResults.provider;
 		String accountName = parseResults.accountType;
 		String startAmountRaw = parseResults.startAmountRaw;
-		String currentAmountRaw = parseResults.currentAmountRaw;
+		String currentAmountRaw = parseResults.amountLeftRaw;
 		String extraAmountRaw = parseResults.extraAmountRaw;
 		String startDateRaw = parseResults.startDateRaw;
 		String endDateRaw = parseResults.endDateRaw;
@@ -103,6 +165,16 @@ public class BeltegoedActivity extends Activity {
 		TextView bundle_dates = (TextView) findViewById(R.id.bundle_dates);
 		bundle_dates.setText("Periode van " + startDateRaw + " tot "
 				+ endDateRaw);
+
+		// Not all providers have this data (KPN)
+		if (parseResults.lastUpdate != null) {
+			SimpleDateFormat formatter = new SimpleDateFormat(
+					"dd-MM-yyyy HH:mm");
+			String lastUpdate = formatter.format(parseResults.lastUpdate);
+			TextView last_update = (TextView) findViewById(R.id.last_update);
+			last_update.setText("Laatste bijgewerkt door provider: "
+					+ lastUpdate);
+		}
 	}
 
 	@Override
@@ -125,26 +197,7 @@ public class BeltegoedActivity extends Activity {
 		}
 		return false;
 	}
-
-	private void GetAccountInformation() {
-		// Cancel a running async task on resume. It may otherwise stall
-		// forever.
-		if (lpt != null) {
-			lpt.cancel(true);
-			lpt = null;
-		}
-
-		lpt = new LocalParseTask();
-		lpt.execute();
-	}
-
-	// This function does GUI tasks from a non-GUI thread.
-	public Handler InvalidLoginHandler = new Handler() {
-		public void handleMessage(Message msg) {
-			alertInvalidLogin();
-		}
-	};
-
+ 
 	private void alertInvalidLogin() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setMessage(R.string.login_error).setCancelable(false)
@@ -157,13 +210,7 @@ public class BeltegoedActivity extends Activity {
 		AlertDialog alert = builder.create();
 		alert.show();
 	}
-
-	// This function does GUI tasks from a non-GUI thread.
-	public Handler UnknownErrorHandler = new Handler() {
-		public void handleMessage(Message msg) {
-			alertUnknownError();
-		}
-	};
+ 
 
 	private void alertUnknownError() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -177,113 +224,4 @@ public class BeltegoedActivity extends Activity {
 		alert.show();
 	}
 
-	private class LocalParseTask extends AsyncTask<Void, Void, Void> {
-		@Override
-		protected void onPreExecute() {
-			showDialog(R.id.dialog_load);
-		}
-
-		@Override
-		protected Void doInBackground(Void... params) {
-			final ParseResults parseResult;
-			if (provider.equals(AccountActivity.PROVIDER_VODAFONE)) {
-				parseResult = providerVodafone
-						.ParseVodafone(username, password);
-			} else if (provider.equals(AccountActivity.PROVIDER_KPN)) {
-				parseResult = providerKPN.ParseKPN(username, password);
-			} else {
-				parseResult = null;
-			}
-
-			SharedPreferences settings = getSharedPreferences(
-					AccountActivity.PREFS_NAME, 0);
-			SharedPreferences.Editor editor = settings.edit();
-
-			if (parseResult != null) {
-				if (parseResult.parseResult == PARSE_RESULT.OK) {
-					// Save the login timestamp so we know the login succeeded.
-					long currentts = (new Date()).getTime();
-
-					editor.putLong(AccountActivity.LAST_LOGIN, currentts);
-					editor.commit();
-
-					BeltegoedActivity.this.runOnUiThread(new Runnable() {
-						public void run() {
-							showAccountDetails(parseResult);
-						}
-					});
-				} else {
-					// We've got a problem, log as much as we can.
-					String logDump = "Beltegoed app debug log. ";
-
-					String versionName = "";
-					try {
-						PackageInfo pi = getPackageManager().getPackageInfo(
-								getPackageName(), 0);
-						versionName = pi.versionName;
-					} catch (PackageManager.NameNotFoundException e) {
-					}
-					logDump += versionName;
-					if (parseResult.provider != null) {
-						logDump += "\nProvider: " + parseResult.provider;
-					}
-					if (parseResult.accountType != null) {
-						logDump += "\nAccount type: " + parseResult.accountType;
-					}
-					logDump += "\nError message: "
-							+ parseResult.getErrorMessage();
-					logDump += "\nLog message: " + parseResult.getLogMessage();
-
-					Tools.writeToSD("Beltegoed-error-log.txt", logDump);
-
-					// Make sure the login is invalidated.
-					editor.putLong(AccountActivity.LAST_LOGIN, -1);
-					editor.commit();
-
-					if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
-						InvalidLoginHandler.sendMessage(new Message());
-					} else {
-						UnknownErrorHandler.sendMessage(new Message());
-					}
-				}
-			}
-
-			return null;
-		}
-
-		/** {@inheritDoc} */
-		@Override
-		protected void onPostExecute(Void result) {
-			dismissDialog(R.id.dialog_load);
-		}
-	}
-
-	/** {@inheritDoc} */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		switch (id) {
-		case R.id.dialog_load:
-			return buildLoadingDialog();
-		default:
-			return null;
-		}
-	}
-
-	/**
-	 * Build dialog to show when loading data.
-	 */
-	private Dialog buildLoadingDialog() {
-		ProgressDialog dialog = new ProgressDialog(this);
-		dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		dialog.setMessage(getText(R.string.dialog_loading_account));
-		dialog.setIndeterminate(true); // Show cyclic animation
-		dialog.setCancelable(true); // Allow pressing BACK to cancel
-		dialog.setOnCancelListener(new ProgressDialog.OnCancelListener() {
-			@Override
-			public void onCancel(DialogInterface dialog) {
-				// XXX: Cleanup
-			}
-		});
-		return dialog;
-	}
 }

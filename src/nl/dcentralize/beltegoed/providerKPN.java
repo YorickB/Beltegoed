@@ -1,10 +1,13 @@
 package nl.dcentralize.beltegoed;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
 import nl.dcentralize.beltegoed.ParseResults.PARSE_STEP;
@@ -18,6 +21,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 public class providerKPN {
 	public static String verifyAccount(String username, String password) {
@@ -106,44 +112,87 @@ public class providerKPN {
 				String str = Tools.convertStreamToString(entity.getContent());
 				parseResult.appendLogMessage(PARSE_STEP.ACCOUNT_DETAILS, str);
 
-				String[] lines = str.split("\n");
-				// Flexibel 20
-				final String accountType = lines[11].split("<ns0:DESCRIPTION>")[1]
-						.split("</ns0:DESCRIPTION>")[0];
+				// The XML line positions are not fixed.
+				// I.e. extra fields are added on bundle over usage.
+				// So need to do proper XML parsing, not simple line splitting.
+				DocumentBuilderFactory factory = DocumentBuilderFactory
+						.newInstance();
+				DocumentBuilder builder = factory.newDocumentBuilder();
 
-				final String endDate = lines[4].split("<ns0:END_DATE>")[1]
-						.split("</ns0:END_DATE>")[0];
-				final String startDate = lines[5].split("<ns0:START_DATE>")[1]
-						.split("</ns0:START_DATE>")[0];
+				// Needs to read from stream, and the stream can only be
+				// consumed once, so create a new one.
+				InputStream is = new ByteArrayInputStream(str.getBytes());
+				Document dom = builder.parse(is);
 
-				String centstartAmountRaw = lines[40].split("<ns0:SIZE>")[1]
-						.split(".0</ns0:SIZE>")[0];
-				final String startAmountRaw = centstartAmountRaw
-						.substring(0, 2)
-						+ "," + centstartAmountRaw.substring(2, 4);
+				Element root = dom.getDocumentElement();
 
-				String centcurrentAmountRaw = lines[17]
-						.split("ns1:Factor=\"0.01\">")[1]
-						.split(".0</ns0:COST>")[0];
-				final String currentAmountRaw = centcurrentAmountRaw.substring(
-						0, 2)
-						+ "," + centcurrentAmountRaw.substring(2, 4);
+				// 2009-12-20
+				NodeList items = root.getElementsByTagName("ns0:END_DATE");
+				// We need not the value of an Element node, but the value of an
+				// Element node's first child.
+				final String endDate = items.item(0).getFirstChild()
+						.getNodeValue();
 
-				String centextraAmountRaw = lines[45]
-						.split("ns1:Factor=\"0.01\">")[1]
-						.split(".0</ns0:OVER_BUNDLE_COST>")[0];
-				final String extraAmountRaw = centextraAmountRaw
-						.substring(0, 2)
-						+ "," + centextraAmountRaw.substring(2, 4);
+				// 2009-11-18
+				items = root.getElementsByTagName("ns0:START_DATE");
+				final String startDate = items.item(0).getFirstChild()
+						.getNodeValue();
+
+				// Flexibel 22,50
+				items = root.getElementsByTagName("ns0:DESCRIPTION");
+				// The first DESCRIPTION is (probably) the Flexibel one, not the
+				// Surf en Mail Totaal
+				final String accountType = items.item(0).getFirstChild()
+						.getNodeValue();
+
+				// 23,50 (May be more than the monthly bundle, including last
+				// months leftovers)
+				items = root.getElementsByTagName("ns0:SIZE");
+				// 2350.0
+				String centstartAmountRaw = items.item(0).getFirstChild()
+						.getNodeValue();
+				int startAmountCents = Integer.parseInt(centstartAmountRaw
+						.substring(0, centstartAmountRaw.length() - 2));
+				final String startAmountRaw = startAmountCents / 100 + ","
+						+ startAmountCents % 100;
+
+				// 19,60
+				items = root.getElementsByTagName("ns0:COST");
+				// 196.0
+				String centUsedAmountRaw = items.item(0).getFirstChild()
+						.getNodeValue();
+				int usedAmountCents = Integer.parseInt(centUsedAmountRaw
+						.substring(0, centUsedAmountRaw.length() - 2));
+				// Note, KPN doesn't provide what amount is left, just what is
+				// used. Calculate the former.
+				int currentAmountCents = startAmountCents - usedAmountCents;
+				final String currentAmountRaw = currentAmountCents / 100 + ","
+						+ currentAmountCents % 100;
+
+				items = root.getElementsByTagName("ns0:OVER_BUNDLE_COST");
+				final String extraAmountRaw;
+				if (items.getLength() > 0) {
+					String centextraAmountRaw = items.item(0).getFirstChild()
+							.getNodeValue();
+					int extraAmountCents = Integer.parseInt(centextraAmountRaw
+							.substring(0, centextraAmountRaw.length() - 2));
+					extraAmountRaw = extraAmountCents / 100 + ","
+							+ extraAmountCents % 100;
+				} else {
+					extraAmountRaw = "0,00";
+				}
 
 				entity.consumeContent();
 
 				parseResult.accountType = accountType;
 				parseResult.startAmountRaw = startAmountRaw;
-				parseResult.currentAmountRaw = currentAmountRaw;
+				parseResult.amountLeftRaw = currentAmountRaw;
 				parseResult.extraAmountRaw = extraAmountRaw;
 				parseResult.endDateRaw = endDate;
 				parseResult.startDateRaw = startDate;
+				// Volgens FAQ: update vindt elke nacht plaats. Update verbruik
+				// buiten bundel nog later (onbekend).
+				parseResult.lastUpdate = null;
 			}
 
 			// When HttpClient instance is no longer needed,
@@ -171,5 +220,4 @@ public class providerKPN {
 		parseResult.parseResult = PARSE_RESULT.OK;
 		return parseResult;
 	}
-
 }
