@@ -14,7 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
- 
+
 public class AccountActivity extends Activity {
 	private static final String TAG = "BeltegoedActivity";
 	public static final String PREFS_NAME = "BeltegoedPreferences";
@@ -22,6 +22,14 @@ public class AccountActivity extends Activity {
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
 	public static final String LAST_LOGIN = "LAST_LOGIN";
+	
+	public static final String ACCOUNT_TYPE = "ACCOUNT_TYPE";
+	public static final String START_AMOUNT = "START_AMOUNT";
+	public static final String AMOUNT_LEFT = "AMOUNT_LEFT";
+	public static final String EXTRA_AMOUNT = "EXTRA_AMOUNT";
+	public static final String START_DATE = "START_DATE";
+	public static final String END_DATE = "END_DATE";
+	public static final String LAST_UPDATE = "LAST_UPDATE";
 
 	public static final String PROVIDER_VODAFONE = "Vodafone";
 	public static final String PROVIDER_KPN = "KPN";
@@ -40,7 +48,7 @@ public class AccountActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
- 
+
 		// Generate an exception to test the talkback process
 		// Integer.parseInt("50,00");
 
