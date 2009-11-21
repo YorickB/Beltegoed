@@ -22,7 +22,7 @@ public class AccountActivity extends Activity {
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
 	public static final String LAST_LOGIN = "LAST_LOGIN";
-	
+
 	public static final String ACCOUNT_TYPE = "ACCOUNT_TYPE";
 	public static final String START_AMOUNT = "START_AMOUNT";
 	public static final String AMOUNT_LEFT = "AMOUNT_LEFT";
@@ -33,8 +33,9 @@ public class AccountActivity extends Activity {
 
 	public static final String PROVIDER_VODAFONE = "Vodafone";
 	public static final String PROVIDER_KPN = "KPN";
-	public static final ArrayList<String> PROVIDER_LIST = new ArrayList<String>(
-			Arrays.asList(PROVIDER_VODAFONE, PROVIDER_KPN));
+	public static final String PROVIDER_TMOBILE = "T-Mobile";
+	public static final ArrayList<String> PROVIDER_LIST = new ArrayList<String>(Arrays.asList(PROVIDER_VODAFONE,
+			PROVIDER_KPN, PROVIDER_TMOBILE));
 
 	static final int ACCOUNT_REQUEST = 0;
 
@@ -77,10 +78,9 @@ public class AccountActivity extends Activity {
 
 		// Fill provider options
 		provider_input = (Spinner) findViewById(R.id.provider);
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_spinner_item, PROVIDER_LIST);
-		adapter
-				.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item,
+				PROVIDER_LIST);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		provider_input.setAdapter(adapter);
 
 		// Restore old settings
@@ -107,10 +107,12 @@ public class AccountActivity extends Activity {
 
 		String verificationResult = null;
 		if (provider.equals(AccountActivity.PROVIDER_VODAFONE)) {
-			verificationResult = providerVodafone.verifyAccount(username,
-					password);
+			verificationResult = providerVodafone.verifyAccount(username, password);
 		} else if (provider.equals(AccountActivity.PROVIDER_KPN)) {
 			verificationResult = providerKPN.verifyAccount(username, password);
+
+		} else if (provider.equals(AccountActivity.PROVIDER_TMOBILE)) {
+			verificationResult = providerTMobile.verifyAccount(username, password);
 		}
 
 		if (verificationResult == null) {
@@ -127,14 +129,12 @@ public class AccountActivity extends Activity {
 			ReportSuccess(provider, username, password);
 		} else {
 			// Input validation error. Show error description.
-			new AlertDialog.Builder(this).setMessage(verificationResult)
-					.setCancelable(false).setNeutralButton("Ok",
-							new DialogInterface.OnClickListener() {
-								public void onClick(DialogInterface dialog,
-										int id) {
-									dialog.cancel();
-								}
-							}).create().show();
+			new AlertDialog.Builder(this).setMessage(verificationResult).setCancelable(false).setNeutralButton("Ok",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+						}
+					}).create().show();
 		}
 	}
 

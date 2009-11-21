@@ -11,6 +11,10 @@ public class ParseResults {
 		INIT, LOGIN_FORM, LOGGED_IN, EXTRA, ACCOUNT_DETAILS
 	};
 
+	public enum AMOUNT_UNIT {
+		EURO, MINUTES
+	};
+
 	public PARSE_RESULT parseResult = PARSE_RESULT.NONE;
 	private String errorMessage = "";
 	private String logMessage = "";
@@ -19,6 +23,7 @@ public class ParseResults {
 	public String provider;
 	// Provider specific account type ("Basis abonnement 50,00")
 	public String accountType;
+	public AMOUNT_UNIT amountUnit = AMOUNT_UNIT.EURO; 
 	// Amount (euro) of the start at a period (could include last periods
 	// leftovers).
 	public String startAmountRaw;

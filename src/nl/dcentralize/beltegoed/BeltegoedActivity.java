@@ -2,6 +2,7 @@ package nl.dcentralize.beltegoed;
 
 import java.text.SimpleDateFormat;
 
+import nl.dcentralize.beltegoed.ParseResults.AMOUNT_UNIT;
 import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
 
 import android.app.Activity;
@@ -144,6 +145,7 @@ public class BeltegoedActivity extends Activity {
 		String extraAmountRaw = parseResults.extraAmountRaw;
 		String startDateRaw = parseResults.startDateRaw;
 		String endDateRaw = parseResults.endDateRaw;
+		AMOUNT_UNIT amountUnit = parseResults.amountUnit;
 
 		int startAmountRounded = Integer.parseInt(startAmountRaw.split(",")[0]);
 		int currentAmountRounded = Integer.parseInt(currentAmountRaw.split(",")[0]);
@@ -160,8 +162,12 @@ public class BeltegoedActivity extends Activity {
 		account_type.setText(providerName + " " + accountName);
 
 		TextView amount_text = (TextView) findViewById(R.id.amount_text);
-		amount_text.setText("€ " + currentAmountRaw + " van oorspronkelijke € " + startAmountRaw + " over.");
-
+		if (amountUnit == AMOUNT_UNIT.EURO) {
+			amount_text.setText("€ " + currentAmountRaw + " van oorspronkelijke € " + startAmountRaw + " over.");
+		} else {
+			amount_text.setText(currentAmountRaw + "  van oorspronkelijke " + startAmountRaw + " min over.");
+		}
+		
 		TextView extra_text = (TextView) findViewById(R.id.extra_text);
 		extra_text.setText("€ " + extraAmountRaw + " extra buiten bundel.");
 

@@ -125,6 +125,8 @@ public class BeltegoedService extends Service {
 			parseResult = providerVodafone.ParseVodafone(account.getUsername(), account.getPassword());
 		} else if (account.getProvider().equals(AccountActivity.PROVIDER_KPN)) {
 			parseResult = providerKPN.ParseKPN(account.getUsername(), account.getPassword());
+		} else if (account.getProvider().equals(AccountActivity.PROVIDER_TMOBILE)) {
+			parseResult = providerTMobile.ParseTMobile(account.getUsername(), account.getPassword());
 		} else {
 			parseResult = null;
 		}
