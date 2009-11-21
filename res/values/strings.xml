@@ -9,5 +9,6 @@
 	<string name="dialog_loading_account">Inladen van gegevens\u2026</string>
 	<string name="account_type">Abonnementsvorm:</string>
 	<string name="login_error">Login/wachtwoord onjuist</string>
+	<string name="temp_block">Na enkele onjuiste pogingen is er een blokkade van 15 min.</string>
 	<string name="error_parsing">Fout opgetreden (onbekend abonnement?). Stuur het het logbestand (op de SD card) naar de makers, en we verhelpen het.</string>
 </resources>

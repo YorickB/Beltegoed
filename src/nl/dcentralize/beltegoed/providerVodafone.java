@@ -48,8 +48,7 @@ public class providerVodafone {
 			DefaultHttpClient httpclient = new DefaultHttpClient();
 
 			// Part 1. Get the login form.
-			HttpGet httpget = new HttpGet(
-					"https://my.vodafone.nl/prive/my_vodafone?errormessage=&errorcode=");
+			HttpGet httpget = new HttpGet("https://my.vodafone.nl/prive/my_vodafone?errormessage=&errorcode=");
 
 			HttpResponse response = httpclient.execute(httpget);
 			HttpEntity entity = response.getEntity();
@@ -63,21 +62,17 @@ public class providerVodafone {
 				parseResult.appendLogMessage(PARSE_STEP.LOGIN_FORM, str);
 
 				String[] split = str.split("\" name=\"ID\"");
-				id = split[0].substring(split[0].length() - 32, split[0]
-						.length());
+				id = split[0].substring(split[0].length() - 32, split[0].length());
 				entity.consumeContent();
 			}
 
 			// Part 2. Perform the login and send the ID from the form
 			// along.
-			HttpPost httpost = new HttpPost(
-					"https://login.vodafone.nl/signon?provider=myvodafone");
+			HttpPost httpost = new HttpPost("https://login.vodafone.nl/signon?provider=myvodafone");
 			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
 			nvps.add(new BasicNameValuePair("ID", id));
-			nvps.add(new BasicNameValuePair("assertionconsumerurl",
-					"Prive/My_Vodafone"));
-			nvps.add(new BasicNameValuePair("loginerrorurl",
-					"prive/my_vodafone"));
+			nvps.add(new BasicNameValuePair("assertionconsumerurl", "Prive/My_Vodafone"));
+			nvps.add(new BasicNameValuePair("loginerrorurl", "prive/my_vodafone"));
 			nvps.add(new BasicNameValuePair("password", password));
 			nvps.add(new BasicNameValuePair("username", username));
 
@@ -89,7 +84,16 @@ public class providerVodafone {
 				String errorMessage = e.getCause().getMessage();
 				if (errorMessage.contains("errorcode=UE_LOGIN_TIMEOUT")) {
 					// Try again.
+				} else if (errorMessage.contains("errorcode=UE_LAST_ATTEMPT")) {
+					// De inloggegevens zijn niet juist. Je hebt nog 1 inlogpoging. Daarna wordt het inloggen geblokkeerd. 
+				} else if (errorMessage.contains("errorcode=UE_ACCOUNT_BLOCKED")) {
+					// De inloggegevens zijn niet juist. Je kunt nu 15 minuten
+					// lang niet inloggen
+					parseResult.parseResult = PARSE_RESULT.TEMP_BLOCK;
+					parseResult.setErrorMessage(e.getCause().getMessage());
+					return parseResult;
 				}
+
 				parseResult.parseResult = PARSE_RESULT.INVALID_LOGIN;
 				parseResult.setErrorMessage(e.getCause().getMessage());
 				return parseResult;
@@ -110,8 +114,7 @@ public class providerVodafone {
 			httpost = new HttpPost("https://my.vodafone.nl/Prive/My_Vodafone");
 			nvps = new ArrayList<NameValuePair>();
 			nvps.add(new BasicNameValuePair("_fp", "info"));
-			nvps.add(new BasicNameValuePair("_fs",
-					"es_prive_my vodafone_verbruik en prijsplan_costcontrol"));
+			nvps.add(new BasicNameValuePair("_fs", "es_prive_my vodafone_verbruik en prijsplan_costcontrol"));
 			nvps.add(new BasicNameValuePair("_st", ""));
 			nvps.add(new BasicNameValuePair("getdata", "true"));
 
@@ -127,23 +130,19 @@ public class providerVodafone {
 					// "op dit moment is het niet mogelijk om je tegoed en verbruik te tonen. Probeer het op een later tijdstip nogmaals."
 					// XXX: handle this case
 				}
-				
+
 				// Basis abonnement 50,00
-				final String accountType = str
-						.split("myvodafone.dashboard.usage.priceplan.mijnabonnement")[1]
+				final String accountType = str.split("myvodafone.dashboard.usage.priceplan.mijnabonnement")[1]
 						.split("</h1>")[1].split("<br>")[0];
 				// 50,00
-				final String startAmountRaw = str
-						.split("myvodafone.dashboard.usage.priceplan.tegoed.start ")[1]
+				final String startAmountRaw = str.split("myvodafone.dashboard.usage.priceplan.tegoed.start ")[1]
 						.split("&euro;&nbsp;")[1].split("</span>")[0];
 				// Trailing space needs to stay
 				// 29,00
-				final String currentAmountRaw = str
-						.split("myvodafone.dashboard.usage.priceplan.tegoed.start ")[1]
+				final String currentAmountRaw = str.split("myvodafone.dashboard.usage.priceplan.tegoed.start ")[1]
 						.split("&euro;&nbsp;")[2].split("</span>")[0];
 				// 3,13
-				final String extraAmountRaw = str
-						.split("myvodafone.dashboard.usage.priceplan.buiten")[1]
+				final String extraAmountRaw = str.split("myvodafone.dashboard.usage.priceplan.buiten")[1]
 						.split("&euro;&nbsp;")[1].split("</span>")[0];
 				/*
 				 * // 19 november&nbsp;2009 final String lastUpdateDate = str
@@ -151,13 +150,11 @@ public class providerVodafone {
 				 * .split("<nobr>")[1].split("</nobr>")[0].replace("&nbsp", "");
 				 */
 				// 19-11-2009
-				final String lastUpdateDate = str
-						.split("myvodafone.dashboard.cost.textpart.two -->")[1]
+				final String lastUpdateDate = str.split("myvodafone.dashboard.cost.textpart.two -->")[1]
 						.split("</span>")[0];
 				// 12:57
-				final String lastUpdateTime = str
-						.split("bundle.timestamp.timePrefix")[1]
-						.split("<nobr>")[1].split("</nobr>")[0];
+				final String lastUpdateTime = str.split("bundle.timestamp.timePrefix")[1].split("<nobr>")[1]
+						.split("</nobr>")[0];
 
 				entity.consumeContent();
 
@@ -174,8 +171,7 @@ public class providerVodafone {
 				parseResult.endDateRaw = year + "-" + month + "-" + maxDay;
 
 				SimpleDateFormat df1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-				parseResult.lastUpdate = df1.parse(lastUpdateDate + " "
-						+ lastUpdateTime);
+				parseResult.lastUpdate = df1.parse(lastUpdateDate + " " + lastUpdateTime);
 			}
 
 			// When HttpClient instance is no longer needed,

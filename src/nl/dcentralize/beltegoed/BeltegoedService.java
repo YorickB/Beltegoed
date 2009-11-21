@@ -177,13 +177,7 @@ public class BeltegoedService extends Service {
 						Tools.writeToSD("Beltegoed-error-log.txt", logDump);
 
 						updateAccountDetails(parseResult, true);
-
-						if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
-							// InvalidLoginHandler.sendMessage(new Message());
-						} else {
-							// UnknownErrorHandler.sendMessage(new Message());
-						}
-
+  
 						synchronized (this) {
 							creditDetails = null;
 						}

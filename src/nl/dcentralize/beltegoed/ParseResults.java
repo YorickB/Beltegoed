@@ -4,7 +4,7 @@ import java.util.Date;
 
 public class ParseResults {
 	public enum PARSE_RESULT {
-		NONE, CACHED, NO_INTERNET, OK, INVALID_LOGIN, UNKNOWN
+		NONE, CACHED, NO_INTERNET, OK, INVALID_LOGIN, TEMP_BLOCK, UNKNOWN
 	};
 
 	public enum PARSE_STEP {

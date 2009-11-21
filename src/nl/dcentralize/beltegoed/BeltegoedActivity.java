@@ -83,10 +83,14 @@ public class BeltegoedActivity extends Activity {
 		public void handleMessage(Message msg) {
 			ParseResults parseResult = appService.getBeltegoed();
 
-			if (parseResult.parseResult == PARSE_RESULT.OK || parseResult.parseResult == PARSE_RESULT.CACHED) {
+			if (parseResult == null) {
+				alertUnknownError();
+			} else if (parseResult.parseResult == PARSE_RESULT.OK || parseResult.parseResult == PARSE_RESULT.CACHED) {
 				showAccountDetails(parseResult);
-			} else if (parseResult != null && parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
+			} else if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
 				alertInvalidLogin();
+			} else if (parseResult.parseResult == PARSE_RESULT.TEMP_BLOCK) {
+				alertTempBlock();
 			} else {
 				alertUnknownError();
 			}
@@ -167,7 +171,7 @@ public class BeltegoedActivity extends Activity {
 		} else {
 			amount_text.setText(currentAmountRaw + "  van oorspronkelijke " + startAmountRaw + " min over.");
 		}
-		
+
 		TextView extra_text = (TextView) findViewById(R.id.extra_text);
 		extra_text.setText("€ " + extraAmountRaw + " extra buiten bundel.");
 
@@ -211,6 +215,18 @@ public class BeltegoedActivity extends Activity {
 					public void onClick(DialogInterface dialog, int id) {
 						dialog.cancel();
 						showAccountSettings();
+					}
+				});
+		AlertDialog alert = builder.create();
+		alert.show();
+	}
+
+	private void alertTempBlock() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setMessage(R.string.temp_block).setCancelable(false).setNeutralButton("Ok",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel(); 
 					}
 				});
 		AlertDialog alert = builder.create();
