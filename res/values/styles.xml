@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<style name="WidgetBackground">
+		<item name="android:background">@drawable/widget_bg</item>
+	</style>
+
+	<style name="Text">
+	</style>
+
+	<style name="Text.Widget">
+		<item name="android:textColor">@android:color/black</item>
+	</style>
+</resources>

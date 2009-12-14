@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="horizontal" android:layout_width="fill_parent"
+	android:layout_height="fill_parent" style="@style/WidgetBackground">
+  
+	<ProgressBar android:id="@+id/amount"
+		style="?android:attr/progressBarStyleHorizontal"
+		android:layout_width="fill_parent"
+		android:layout_height="20px" android:indeterminate="true"
+		android:layout_marginTop="20px" android:layout_marginRight="5px"/>
+
+	<TextView android:id="@+id/amount_left" android:layout_below="@id/amount"
+		android:layout_width="wrap_content" android:layout_height="wrap_content"
+		android:gravity="center" android:text="Beltegoed" style="@style/Text.Widget" />
+</RelativeLayout>
+  
