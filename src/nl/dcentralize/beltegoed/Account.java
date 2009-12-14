@@ -1,7 +1,6 @@
 package nl.dcentralize.beltegoed;
 
 public class Account {
-	// Provider ("Vodafone" or "KPN")
 	private String provider;
 	private String username;
 	private String password;

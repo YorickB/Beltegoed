@@ -4,11 +4,12 @@ import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
-import nl.dcentralize.beltegoed.ParseResults.AMOUNT_UNIT;
-import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
-import nl.dcentralize.beltegoed.ParseResults.PARSE_STEP;
+import nl.dcentralize.beltegoed.AccountDetails.AMOUNT_UNIT;
+import nl.dcentralize.beltegoed.AccountDetails.PARSE_RESULT;
+import nl.dcentralize.beltegoed.AccountDetails.PARSE_STEP;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -32,8 +33,8 @@ public class providerTMobile {
 		return null;
 	}
 
-	public static ParseResults ParseTMobile(String username, String password) {
-		ParseResults parseResult = new ParseResults();
+	public static AccountDetails ParseTMobile(String username, String password) {
+		AccountDetails parseResult = new AccountDetails();
 		parseResult.provider = "T-Mobile";
 		parseResult.appendLogMessage(PARSE_STEP.INIT, "");
 
@@ -157,32 +158,37 @@ public class providerTMobile {
 					startAmountRaw = accountType.split("i-")[1];
 				} catch (Exception e) {
 				}
+				int startAmount = Integer.parseInt(startAmountRaw);
 
 				// 66
 				final String currentAmountRaw = str.split("Resterende belminuten voor deze maand:")[1].split("bold\">")[1]
 						.split(":")[0];
+				int currentAmount = Integer.parseInt(currentAmountRaw);
 
 				// 2,32
 				final String extraAmountRaw = str.split("UsageCostColumn")[1].split("€ ")[1].split("</strong>")[0];
-
+				int extraAmountCents = Integer.parseInt(extraAmountRaw.replace(",", ""));
+						
 				entity.consumeContent();
 
 				parseResult.accountType = accountType;
 				parseResult.amountUnit = AMOUNT_UNIT.MINUTES;
-				parseResult.startAmountRaw = startAmountRaw;
-				parseResult.amountLeftRaw = currentAmountRaw;
-				parseResult.extraAmountRaw = extraAmountRaw;
+				parseResult.startAmount = startAmount;
+				parseResult.amountLeft = currentAmount;
+				parseResult.extraAmount = extraAmountCents;
 				Calendar calendar = Calendar.getInstance();
 				int maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
 				int minDay = calendar.getActualMinimum(Calendar.DAY_OF_MONTH);
 				int month = calendar.get(Calendar.MONTH) + 1;
 				int year = calendar.get(Calendar.YEAR);
-				parseResult.startDateRaw = year + "-" + month + "-" + minDay;
-				parseResult.endDateRaw = year + "-" + month + "-" + maxDay;
 
-				SimpleDateFormat df1 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+				SimpleDateFormat df1 = new SimpleDateFormat("yyyy-MM-dd");
+				parseResult.startDate = df1.parse(year + "-" + month + "-" + minDay);
+				parseResult.endDate = df1.parse(year + "-" + month + "-" + maxDay);
+
+				SimpleDateFormat df2 = new SimpleDateFormat("dd-MM-yyyy HH:mm");
 				// XXX: Tijd is ook op te halen, van persoonlijke landing page
-				parseResult.lastUpdate = df1.parse(lastUpdateDate + " " + "00:00");
+				parseResult.lastProviderUpdate = df2.parse(lastUpdateDate + " " + "00:00");
 			}
 
 			// When HttpClient instance is no longer needed,
@@ -207,6 +213,7 @@ public class providerTMobile {
 			return parseResult;
 		}
 
+		parseResult.appendLogMessage(PARSE_STEP.SUCCESS, "");
 		parseResult.parseResult = PARSE_RESULT.OK;
 		return parseResult;
 	}

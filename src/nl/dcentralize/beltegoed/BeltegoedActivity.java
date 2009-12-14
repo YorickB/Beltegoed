@@ -2,9 +2,8 @@ package nl.dcentralize.beltegoed;
 
 import java.text.SimpleDateFormat;
 
-import nl.dcentralize.beltegoed.ParseResults.AMOUNT_UNIT;
-import nl.dcentralize.beltegoed.ParseResults.PARSE_RESULT;
-
+import nl.dcentralize.beltegoed.AccountDetails.AMOUNT_UNIT;
+import nl.dcentralize.beltegoed.AccountDetails.PARSE_RESULT;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -27,16 +26,19 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 public class BeltegoedActivity extends Activity {
-	private static final String TAG = "BeltegoedActivity";
 	private Account account;
 
 	static final int ACCOUNT_REQUEST = 100;
+	static final int ACCOUNT_RESET = 101;
 
 	private BeltegoedService appService = null;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		// Make sure the exceptions are always logged to SD
+		Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler());
 
 		setContentView(R.layout.beltegoed);
 
@@ -51,7 +53,7 @@ public class BeltegoedActivity extends Activity {
 
 		registerReceiver(receiver, new IntentFilter(BeltegoedService.BROADCAST_ACTION));
 		// Update to the latest information gathered by service.
-		getBeltegoed(false);
+		getBeltegoed();
 	}
 
 	@Override
@@ -68,34 +70,56 @@ public class BeltegoedActivity extends Activity {
 		unbindService(onService);
 	}
 
-	private void getBeltegoed(Boolean invalidateCache) {
+	private void getBeltegoed() {
 		// If service has been started, and account has ben set, request
 		// beltegoed.
 		if (appService != null && account != null) {
-			showDialog(R.id.dialog_load);
-			appService.fetchBeltegoed(account, invalidateCache);
+			// Show old account details right away (if available)
+			AccountDetails accountDetails = appService.getCachedAccountDetails(account);
+			if (accountDetails != null) {
+				updateAccountDetails(accountDetails);
+			}
+			refreshBeltegoed();
 		}
+	}
+
+	private void refreshBeltegoed() {
+		// Get fresh details right away
+		showDialog(R.id.dialog_load);
+		appService.refreshAccountDetails(account);
 	}
 
 	// This function does GUI tasks from a non-GUI thread.
 	public Handler DetailsAvailableHandler = new Handler() {
 
 		public void handleMessage(Message msg) {
-			ParseResults parseResult = appService.getBeltegoed();
-
-			if (parseResult == null) {
-				alertUnknownError();
-			} else if (parseResult.parseResult == PARSE_RESULT.OK || parseResult.parseResult == PARSE_RESULT.CACHED) {
-				showAccountDetails(parseResult);
-			} else if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
-				alertInvalidLogin();
-			} else if (parseResult.parseResult == PARSE_RESULT.TEMP_BLOCK) {
-				alertTempBlock();
-			} else {
-				alertUnknownError();
-			}
+			// Signal received that there are new account details, read them.
+			AccountDetails parseResult = appService.getCachedAccountDetails(account);
+			updateAccountDetails(parseResult);
 		}
 	};
+
+	private void updateAccountDetails(AccountDetails parseResult) {
+		if (parseResult == null) {
+			alertMessage(R.string.error_parsing, false);
+		} else if (parseResult.parseResult == PARSE_RESULT.OK || parseResult.parseResult == PARSE_RESULT.CACHED) {
+			showAccountDetails(parseResult);
+		} else {
+			if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN) {
+				alertMessage(R.string.login_error, true);
+			} else if (parseResult.parseResult == PARSE_RESULT.NO_INTERNET) {
+				alertMessage(R.string.no_internet, true);
+			} else if (parseResult.parseResult == PARSE_RESULT.CONN_FAIL) {
+				alertMessage(R.string.conn_fail, true);
+			} else if (parseResult.parseResult == PARSE_RESULT.INVALID_LOGIN_TEMP_BLOCK) {
+				alertMessage(R.string.temp_block, true);
+			} else {
+				alertMessage(R.string.error_parsing, false);
+			}
+			// No more automated tries before reviewing configuration.
+			appService.deleteCachedAccountDetails();
+		}
+	}
 
 	private BroadcastReceiver receiver = new BroadcastReceiver() {
 		public void onReceive(Context context, Intent intent) {
@@ -108,7 +132,7 @@ public class BeltegoedActivity extends Activity {
 		public void onServiceConnected(ComponentName className, IBinder rawBinder) {
 			appService = ((BeltegoedService.LocalBinder) rawBinder).getService();
 
-			getBeltegoed(false);
+			getBeltegoed();
 		}
 
 		public void onServiceDisconnected(ComponentName className) {
@@ -134,54 +158,49 @@ public class BeltegoedActivity extends Activity {
 					account.setUsername(bundle.getString(AccountActivity.USERNAME));
 					account.setPassword(bundle.getString(AccountActivity.PASSWORD));
 
-					getBeltegoed(true);
+					getBeltegoed();
 				}
 			}
 			break;
 		}
 	}
 
-	private void showAccountDetails(ParseResults parseResults) {
+	private void showAccountDetails(AccountDetails parseResults) {
 		String providerName = parseResults.provider;
 		String accountName = parseResults.accountType;
-		String startAmountRaw = parseResults.startAmountRaw;
-		String currentAmountRaw = parseResults.amountLeftRaw;
-		String extraAmountRaw = parseResults.extraAmountRaw;
-		String startDateRaw = parseResults.startDateRaw;
-		String endDateRaw = parseResults.endDateRaw;
 		AMOUNT_UNIT amountUnit = parseResults.amountUnit;
 
-		int startAmountRounded = Integer.parseInt(startAmountRaw.split(",")[0]);
-		int currentAmountRounded = Integer.parseInt(currentAmountRaw.split(",")[0]);
-
 		ProgressBar amountBar = (ProgressBar) findViewById(R.id.amount);
-		amountBar.setMax(startAmountRounded);
-		amountBar.setProgress(currentAmountRounded);
+		amountBar.setMax(parseResults.startAmount);
+		amountBar.setProgress(parseResults.amountLeft);
 
-		startAmountRaw = startAmountRaw.replace(',', '.');
-		currentAmountRaw = currentAmountRaw.replace(',', '.');
-		extraAmountRaw = extraAmountRaw.replace(',', '.');
+		String extraAmountRaw = Tools.CentsToEuroString(parseResults.extraAmount);
 
 		TextView account_type = (TextView) findViewById(R.id.account_type);
 		account_type.setText(providerName + " " + accountName);
 
 		TextView amount_text = (TextView) findViewById(R.id.amount_text);
 		if (amountUnit == AMOUNT_UNIT.EURO) {
+			String startAmountRaw = Tools.CentsToEuroString(parseResults.startAmount);
+			String currentAmountRaw = Tools.CentsToEuroString(parseResults.amountLeft);
 			amount_text.setText("€ " + currentAmountRaw + " van oorspronkelijke € " + startAmountRaw + " over.");
 		} else {
-			amount_text.setText(currentAmountRaw + "  van oorspronkelijke " + startAmountRaw + " min over.");
+			amount_text.setText(parseResults.amountLeft + "  van oorspronkelijke " + parseResults.startAmount
+					+ " min over.");
 		}
 
 		TextView extra_text = (TextView) findViewById(R.id.extra_text);
 		extra_text.setText("€ " + extraAmountRaw + " extra buiten bundel.");
 
 		TextView bundle_dates = (TextView) findViewById(R.id.bundle_dates);
-		bundle_dates.setText("Periode van " + startDateRaw + " tot " + endDateRaw);
+
+		bundle_dates.setText("Periode van " + Tools.DateToString(parseResults.startDate) + " tot "
+				+ Tools.DateToString(parseResults.endDate));
 
 		// Not all providers have this data (KPN)
-		if (parseResults.lastUpdate != null) {
+		if (parseResults.lastProviderUpdate != null) {
 			SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-			String lastUpdate = formatter.format(parseResults.lastUpdate);
+			String lastUpdate = formatter.format(parseResults.lastProviderUpdate);
 			TextView last_update = (TextView) findViewById(R.id.last_update);
 			last_update.setText("Laatste bijgewerkt door provider: " + lastUpdate);
 		}
@@ -204,43 +223,23 @@ public class BeltegoedActivity extends Activity {
 			intent.setAction(Intent.ACTION_EDIT);
 			startActivityForResult(intent, ACCOUNT_REQUEST);
 			return true;
+		case R.id.menu_refresh:
+			refreshBeltegoed();
+			return true;
 		}
 		return false;
 	}
 
-	private void alertInvalidLogin() {
+	private void alertMessage(int text, final Boolean showSettings) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setMessage(R.string.login_error).setCancelable(false).setNeutralButton("Ok",
-				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
-						showAccountSettings();
-					}
-				});
-		AlertDialog alert = builder.create();
-		alert.show();
-	}
-
-	private void alertTempBlock() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setMessage(R.string.temp_block).setCancelable(false).setNeutralButton("Ok",
-				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel(); 
-					}
-				});
-		AlertDialog alert = builder.create();
-		alert.show();
-	}
-
-	private void alertUnknownError() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setMessage(R.string.error_parsing).setCancelable(false).setNeutralButton("Ok",
-				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
-					}
-				});
+		builder.setMessage(text).setCancelable(false).setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				dialog.cancel();
+				if (showSettings) {
+					showAccountSettings();
+				}
+			}
+		});
 		AlertDialog alert = builder.create();
 		alert.show();
 	}

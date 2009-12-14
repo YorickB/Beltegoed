@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+	<string name="account_settings">Account gegevens</string>
+	<string name="debug_settings">Debug instellingen</string>
 	<string name="provider">Aanbieder:</string>
 	<string name="username">Login:</string>
 	<string name="password">Wachtwoord:</string>
 	<string name="button_store_account">Opslaan</string>
 	<string name="app_name">Beltegoed</string>
-	<string name="menu_preferences">Account</string>
+	<string name="menu_preferences">Instellingen</string>
+	<string name="menu_refresh">Verversen</string>
 	<string name="dialog_loading_account">Inladen van gegevens\u2026</string>
 	<string name="account_type">Abonnementsvorm:</string>
 	<string name="login_error">Login/wachtwoord onjuist</string>
-	<string name="temp_block">Na enkele onjuiste pogingen is er een blokkade van 15 min.</string>
-	<string name="error_parsing">Fout opgetreden (onbekend abonnement?). Stuur het het logbestand (op de SD card) naar de makers, en we verhelpen het.</string>
+	<string name="temp_block">Na enkele onjuiste pogingen is er een blokkade van
+		15 min.</string>
+	<string name="error_parsing">Fout opgetreden. Stuur het het logbestand (op de SD
+		card) naar de makers, en we verhelpen het.</string>
+	<string name="no_internet">Is Internet toegankelijk?</string>
+	<string name="conn_fail">Kon geen verbinding krijgen met provider.</string>
+	<string name="configure_required">Run and configure app first</string>
+	<string name="loading_account">Inladen\u2026</string>
 </resources>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-	package="nl.dcentralize.beltegoed" android:versionCode="7"
-	android:versionName="1.0.6">
+	package="nl.dcentralize.beltegoed" android:versionCode="11"
+	android:versionName="1.1">
 	<application android:icon="@drawable/icon" android:label="@string/app_name">
 		<activity android:name=".BeltegoedActivity" android:label="@string/app_name">
 			<intent-filter>
@@ -18,7 +18,8 @@
 				<category android:name="android.intent.category.DEFAULT" />
 			</intent-filter>
 		</activity>
-		<!-- 
+		
+		<!--  Icon and Label are used in the menu of available widgets to add to the home screen -->
 		<receiver android:name=".BeltegoedWidget" android:label="@string/app_name"
 			android:icon="@drawable/icon">
 			<intent-filter>
@@ -27,7 +28,11 @@
 			<meta-data android:name="android.appwidget.provider"
 				android:resource="@xml/widget_provider" />
 		</receiver>
-		-->
+
+		<!-- This service is for the AppWidget -->
+		<service android:name=".BeltegoedWidget$BeltegoedIntentService" />
+		
+		<!-- This service is for the App, not the AppWidget -->
 		<service android:name=".BeltegoedService" />
 	</application>
 

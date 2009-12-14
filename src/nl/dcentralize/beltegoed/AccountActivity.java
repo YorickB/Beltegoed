@@ -16,20 +16,23 @@ import android.widget.EditText;
 import android.widget.Spinner;
 
 public class AccountActivity extends Activity {
-	private static final String TAG = "BeltegoedActivity";
 	public static final String PREFS_NAME = "BeltegoedPreferences";
 	public static final String PROVIDER = "PROVIDER";
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
-	public static final String LAST_LOGIN = "LAST_LOGIN";
 
+	public static final String LAST_LOGIN = "LAST_LOGIN";
+	public static final String CACHED_PROVIDER = "CACHED_PROVIDER";
+	public static final String CACHED_USERNAME = "CACHED_USERNAME";
+	public static final String CACHED_PASSWORD = "CACHED_PASSWORD";
 	public static final String ACCOUNT_TYPE = "ACCOUNT_TYPE";
 	public static final String START_AMOUNT = "START_AMOUNT";
 	public static final String AMOUNT_LEFT = "AMOUNT_LEFT";
 	public static final String EXTRA_AMOUNT = "EXTRA_AMOUNT";
 	public static final String START_DATE = "START_DATE";
 	public static final String END_DATE = "END_DATE";
-	public static final String LAST_UPDATE = "LAST_UPDATE";
+	public static final String LAST_PROVIDER_UPDATE = "LAST_UPDATE";
+	public static final String AMOUNT_UNIT = "AMOUNT_UNIT";
 
 	public static final String PROVIDER_VODAFONE = "Vodafone";
 	public static final String PROVIDER_KPN = "KPN";
@@ -72,6 +75,9 @@ public class AccountActivity extends Activity {
 		String action = this.getIntent().getAction();
 		if (action.equals(Intent.ACTION_VIEW) && lastlogin > 0) {
 			ReportSuccess(provider, username, password);
+		} else if (action.equals(Intent.ACTION_DELETE)) {
+			resetAccount();
+			ReportSuccess();
 		}
 
 		setContentView(R.layout.account);
@@ -98,6 +104,13 @@ public class AccountActivity extends Activity {
 		});
 	}
 
+	public void resetAccount() {
+		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+		SharedPreferences.Editor editor = settings.edit();
+		editor.clear();
+		editor.commit();
+	}
+
 	private void StoreAccount() {
 		SharedPreferences.Editor editor = settings.edit();
 
@@ -110,7 +123,6 @@ public class AccountActivity extends Activity {
 			verificationResult = providerVodafone.verifyAccount(username, password);
 		} else if (provider.equals(AccountActivity.PROVIDER_KPN)) {
 			verificationResult = providerKPN.verifyAccount(username, password);
-
 		} else if (provider.equals(AccountActivity.PROVIDER_TMOBILE)) {
 			verificationResult = providerTMobile.verifyAccount(username, password);
 		}
@@ -148,6 +160,12 @@ public class AccountActivity extends Activity {
 
 		// We're done, close the activity
 		setResult(RESULT_OK, intent);
+		finish();
+	}
+
+	private void ReportSuccess() {
+		// We're done, close the activity
+		setResult(RESULT_OK, new Intent());
 		finish();
 	}
 }
