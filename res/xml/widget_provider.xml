@@ -1,4 +1,4 @@
 <!-- 900000 is 15min, 3600000 is 1h, 43200000 is 12h -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
 	android:minWidth="72dip" android:minHeight="72dip"
-	android:updatePeriodMillis="3600000" />
+	android:updatePeriodMillis="43200000" />
